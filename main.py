@@ -9,7 +9,7 @@ import praw
 import telegram
 from telegram.ext import Updater
 import logging
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, ApplicationBuilder
 import random
 from dotenv import load_dotenv
 
@@ -60,71 +60,78 @@ class RecipeBot:
             #username=USERNAME,
         )
 
-        for submission in self.reddit.subreddit("gifrecipes").hot(limit=10):
-            print(submission.title)
+        #for submission in self.reddit.subreddit("gifrecipes").hot(limit=10):
+        #    print(submission.title)
 
         # connect to the Telegram bot
-        self.bot = telegram.Bot(token=TG_TOKEN)
+        #self.bot = telegram.Bot(token=TG_TOKEN)
 
-        #self.user_post_dict = dict()
+        self.user_post_dict = dict()
 
-        #self.updater = Updater(token=TG_TOKEN, use_context=True)
+        self.bot_app = ApplicationBuilder().token(TG_TOKEN).build()
 
-        #logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-#                            level=logging.INFO)
 
-        #start_handler = CommandHandler('start', self.start)
-        #self.updater.dispatcher.add_handler(start_handler)
+        logging.basicConfig(
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            level=logging.INFO
+        )
 
-        #list_handler = CommandHandler('list', self.list)
-        #self.updater.dispatcher.add_handler(list_handler)
+        self.init_handlers()
 
-        #recipe_handler = CommandHandler('recipe', self.recipe)
-        #self.updater.dispatcher.add_handler(recipe_handler)
+    def init_handlers(self):
 
-        #random_handler = CommandHandler('random', self.random)
-        #self.updater.dispatcher.add_handler(random_handler)
+        start_handler = CommandHandler('start', self.start)
+        self.bot_app.add_handler(start_handler)
+
+        list_handler = CommandHandler('list', self.list)
+        self.bot_app.add_handler(list_handler)
+
+        recipe_handler = CommandHandler('recipe', self.recipe)
+        self.bot_app.add_handler(recipe_handler)
+
+        random_handler = CommandHandler('random', self.random)
+        self.bot_app.add_handler(random_handler)
 
     def run(self):
-        self.updater.start_polling()
+        self.bot_app.run_polling()
 
-    def start(self, update, context):
-        context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="Hi\! Please request some posts with `/list <num posts 1-25>` \n" +
-                                      "Then use `/recipe <partial post name>` to get that recipe\. " +
-                                      "use `/random` to give a random recipe from the hottest 5" +
-                                      "Right now I only support r/GifRecipes\.",
-                                 parse_mode=telegram.ParseMode.MARKDOWN_V2)
+    async def start(self, update, context):
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text="Hi! Please request some posts with `/list <num posts 1-25>` \n" +
+                                       "Then use `/recipe <partial post name>` to get that recipe. " +
+                                       "use `/random` to give a random recipe from the hottest 5" +
+                                       "Right now I only support r/GifRecipes.",
+                                       )
 
-    def random(self, update, context):
+    async def random(self, update, context):
         chat_id = update.effective_chat.id
         post_list = self.get_sorted_hot_posts(5)
         val = random.randint(0, 4)
 
         recipe_text = self.get_recipe_from_post(post_list[val])
-        context.bot.send_message(chat_id=chat_id, text="Heres your random recipe result: " + str(post_list[val][1]))
+        await context.bot.send_message(chat_id=chat_id, text="Heres your random recipe result: " + str(post_list[val][1]))
         if not post_list[val][2].is_self:
             try:
-                context.bot.send_animation(chat_id=chat_id, animation=post_list[val][2].url)
+                await context.bot.send_animation(chat_id=chat_id, animation=post_list[val][2].url)
             except:
                 pass
-        context.bot.send_message(chat_id=chat_id, text=str(recipe_text))
+        await context.bot.send_message(chat_id=chat_id, text=str(recipe_text))
         return
 
-    def list(self, update, context):
+    async def list(self, update, context):
         num = None
         chat_id = update.effective_chat.id
         try:
             num = int(context.args[0])
             print("Got /recipe " + str(num) + " from: " + str(chat_id))
         except:
-            context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
+            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
             return
         if num > 25 or num < 1:
-            context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
+            await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
             return
 
-        context.bot.send_message(chat_id=chat_id,
+        await context.bot.send_message(chat_id=chat_id,
                                  text="Heres the highest " + str(num) + " scoring posts on r/GifRecipes right now")
 
         post_list = self.get_sorted_hot_posts(num=num)
@@ -132,15 +139,15 @@ class RecipeBot:
         self.user_post_dict[chat_id] = post_list
 
         for post in post_list:
-            context.bot.send_message(chat_id=chat_id, text=str(post[1]) + " - " + str(post[0]) + " Points")
+            await context.bot.send_message(chat_id=chat_id, text=str(post[1]) + " - " + str(post[0]) + " Points")
 
-    def recipe(self, update, context):
+    async def recipe(self, update, context):
         search_text = None
         chat_id = update.effective_chat.id
         try:
             search_text = ' '.join(context.args)
         except:
-            context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request")
+            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request")
             return
         # make sure were searching on actual text
         if search_text is None:
@@ -157,16 +164,16 @@ class RecipeBot:
         for post in post_list:
             if search_text in post[1].lower():
                 recipe_text = self.get_recipe_from_post(post)
-                context.bot.send_message(chat_id=chat_id, text="Heres the recipe result for " + str(post[1]))
+                await context.bot.send_message(chat_id=chat_id, text="Heres the recipe result for " + str(post[1]))
                 if not post[2].is_self:
                     try:
-                        context.bot.send_animation(chat_id=chat_id, animation=post[2].url)
+                        await context.bot.send_animation(chat_id=chat_id, animation=post[2].url)
                     except:
                         pass
-                context.bot.send_message(chat_id=chat_id, text=str(recipe_text))
+                await context.bot.send_message(chat_id=chat_id, text=str(recipe_text))
                 return
 
-        context.bot.send_message(chat_id=chat_id,
+        await context.bot.send_message(chat_id=chat_id,
                                  text="Couldn't find that post title among your last post request")
 
     def get_sorted_hot_posts(self, num=10, flair=None):
@@ -212,5 +219,5 @@ class RecipeBot:
 if __name__ == '__main__':
     random.seed()
     bot = RecipeBot()
-    #bot.run()
+    bot.run()
 
