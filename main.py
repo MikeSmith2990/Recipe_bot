@@ -58,6 +58,7 @@ class RecipeBot:
             #password=PASSWORD,
             user_agent=USERAGENT,
             #username=USERNAME,
+            check_for_async=False
         )
 
         #for submission in self.reddit.subreddit("gifrecipes").hot(limit=10):
