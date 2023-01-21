@@ -115,8 +115,8 @@ class BotApp:
         self.user_post_dict[chat_id] = post_list
 
         for post in post_list:
-            await context.bot.send_message(chat_id=chat_id, text=str(post["title"]) + " - " +
-                                                                 str(post["score"]) + " Points")
+            await context.bot.send_message(chat_id=chat_id,
+                                           text=str(post["title"]) + " - " + str(post["score"]) + " Points")
 
     async def recipe(self, update, context):
         search_text = None
@@ -125,7 +125,7 @@ class BotApp:
 
         try:
             search_text = ' '.join(context.args)
-            print("Got /list " + str(search_text) + " from: " + str(chat_id))
+            print("Got /recipe " + str(search_text) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request")
             return
