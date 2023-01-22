@@ -130,6 +130,7 @@ class BotApp:
         try:
             search_text = ' '.join(context.args)
             logging.log(level=logging.INFO, msg="Got /list " + str(search_text) + " from: " + str(chat_id))
+
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
             logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
