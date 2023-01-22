@@ -39,20 +39,19 @@ class BotApp:
 
     def init_handlers(self):
 
-        start_handler = CommandHandler('start', self.start)
-        self.bot_app.add_handler(start_handler)
+        self.bot_app.add_handler(CommandHandler('start', self.start))
+        logging.log(level=logging.INFO, msg="/Start handler added...")
 
-        list_handler = CommandHandler('list', self.list)
-        self.bot_app.add_handler(list_handler)
+        self.bot_app.add_handler(CommandHandler('list', self.list))
+        logging.log(level=logging.INFO, msg="/List handler added...")
 
-        recipe_handler = CommandHandler('recipe', self.recipe)
-        self.bot_app.add_handler(recipe_handler)
+        self.bot_app.add_handler(CommandHandler('recipe', self.recipe))
+        logging.log(level=logging.INFO, msg="/Recipe handler added...")
 
-        random_handler = CommandHandler('random', self.random)
-        self.bot_app.add_handler(random_handler)
+        self.bot_app.add_handler(CommandHandler('random', self.random))
+        logging.log(level=logging.INFO, msg="/Random handler added...")
 
-        test_handler = CommandHandler('test', self.test)
-        self.bot_app.add_handler(test_handler)
+        self.bot_app.add_handler(CommandHandler('test', self.test))
 
     async def start(self, update, context):
         chat_id = update.effective_chat.id
@@ -67,13 +66,13 @@ class BotApp:
 
     async def test(self, update, context):
         chat_id = update.effective_chat.id
-        print("trying to grab image from second post")
-        post_list = self.reddit.get_sorted_hot_posts(5)
-        post = post_list[2]
-        print("Post list:")
-        print(str(post_list))
-        print("post 2?")
-        print(str(post))
+
+        search_text = ' '.join(context.args)
+
+        # Testing issue when supplying blank argument
+        print("context.args: " + str(context.args))
+        print("search_text: " + str(search_text))
+
 
     async def random(self, update, context):
         chat_id = update.effective_chat.id
@@ -105,6 +104,7 @@ class BotApp:
             logging.log(level=logging.INFO, msg="Got /list " + str(num) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
+            logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
         if num > 25 or num < 1:
             await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
@@ -131,7 +131,8 @@ class BotApp:
             search_text = ' '.join(context.args)
             logging.log(level=logging.INFO, msg="Got /list " + str(search_text) + " from: " + str(chat_id))
         except:
-            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request")
+            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
+            logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
         # make sure were searching on actual text
         if search_text is None:
@@ -160,6 +161,7 @@ class BotApp:
                                                text=str(recipe_text))
                 return
 
+        # we did not find the title in the list
         await context.bot.send_message(chat_id=chat_id,
                                        text="Couldn't find that post title among your last post request")
 
