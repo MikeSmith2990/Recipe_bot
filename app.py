@@ -14,14 +14,14 @@ class BotApp:
 
     def __init__(self):
 
+        # Seed the RNG, Create the reddit instance for pulling data
+        # Create the dict to store information (This will be replaced by persistent DB later)
+        # create the bot app to get requests and reply
+        # set up logging
+
         random.seed()
 
         self.reddit = RedditScrape()
-        # for submission in self.reddit.subreddit("gifrecipes").hot(limit=10):
-        #    print(submission.title)
-
-        # connect to the Telegram bot
-        # self.bot = telegram.Bot(token=TG_TOKEN)
 
         self.user_post_dict = dict()
 
@@ -39,22 +39,24 @@ class BotApp:
 
     def init_handlers(self):
 
-        start_handler = CommandHandler('start', self.start)
-        self.bot_app.add_handler(start_handler)
+        self.bot_app.add_handler(CommandHandler('start', self.start))
+        logging.log(level=logging.INFO, msg="/Start handler added...")
 
-        list_handler = CommandHandler('list', self.list)
-        self.bot_app.add_handler(list_handler)
+        self.bot_app.add_handler(CommandHandler('list', self.list))
+        logging.log(level=logging.INFO, msg="/List handler added...")
 
-        recipe_handler = CommandHandler('recipe', self.recipe)
-        self.bot_app.add_handler(recipe_handler)
+        self.bot_app.add_handler(CommandHandler('recipe', self.recipe))
+        logging.log(level=logging.INFO, msg="/Recipe handler added...")
 
-        random_handler = CommandHandler('random', self.random)
-        self.bot_app.add_handler(random_handler)
+        self.bot_app.add_handler(CommandHandler('random', self.random))
+        logging.log(level=logging.INFO, msg="/Random handler added...")
 
-        test_handler = CommandHandler('test', self.test)
-        self.bot_app.add_handler(test_handler)
+        self.bot_app.add_handler(CommandHandler('test', self.test))
 
     async def start(self, update, context):
+        chat_id = update.effective_chat.id
+
+        logging.log(level=logging.INFO, msg="Got /start from: " + str(chat_id))
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Hi! Please request some posts with `/list <num posts 1-25>` \n" +
                                        "Then use `/recipe <partial post name>` to get that recipe. " +
@@ -64,17 +66,18 @@ class BotApp:
 
     async def test(self, update, context):
         chat_id = update.effective_chat.id
-        print("trying to grab image from second post")
-        post_list = self.reddit.get_sorted_hot_posts(5)
-        post = post_list[2]
-        print("Post list:")
-        print(str(post_list))
-        print("post 2?")
-        print(str(post))
+
+        search_text = ' '.join(context.args)
+
+        # Testing issue when supplying blank argument
+        print("context.args: " + str(context.args))
+        print("search_text: " + str(search_text))
+
 
     async def random(self, update, context):
         chat_id = update.effective_chat.id
-        print("Got /random from: " + str(chat_id))
+
+        logging.log(level=logging.INFO, msg="Got /random from: " + str(chat_id))
 
         await context.bot.send_message(chat_id=chat_id, text="Got request for random post. Processing...")
 
@@ -98,9 +101,10 @@ class BotApp:
         chat_id = update.effective_chat.id
         try:
             num = int(context.args[0])
-            print("Got /list " + str(num) + " from: " + str(chat_id))
+            logging.log(level=logging.INFO, msg="Got /list " + str(num) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
+            logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
         if num > 25 or num < 1:
             await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
@@ -125,9 +129,11 @@ class BotApp:
 
         try:
             search_text = ' '.join(context.args)
-            print("Got /recipe " + str(search_text) + " from: " + str(chat_id))
+            logging.log(level=logging.INFO, msg="Got /list " + str(search_text) + " from: " + str(chat_id))
+
         except:
-            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request")
+            await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
+            logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
         # make sure were searching on actual text
         if search_text is None:
@@ -149,17 +155,19 @@ class BotApp:
                                                text="Heres the recipe result for " + str(post["title"]))
                 # send the gif link
                 await context.bot.send_message(chat_id=chat_id,
-                                             text="reddit.com" + str(post["post"].permalink))
-                #send recipe
+                                               text="reddit.com" + str(post["post"].permalink))
+                # send recipe
                 await context.bot.send_message(chat_id=chat_id,
                                                disable_web_page_preview=True,
                                                text=str(recipe_text))
                 return
 
+        # we did not find the title in the list
         await context.bot.send_message(chat_id=chat_id,
                                        text="Couldn't find that post title among your last post request")
 
-    def get_recipe_from_post(self, post_dict=None):
+    @staticmethod
+    def get_recipe_from_post(post_dict=None):
         if post_dict is None:
             return None
 
@@ -173,12 +181,3 @@ class BotApp:
             recipe_comment = recipe
             break
         return recipe_comment.body
-
-    def get_post_image(self, post_tup=None):
-        if post_tup is None:
-            return None
-
-        post = post_tup[2]
-        print(post.url)
-
-
