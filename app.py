@@ -149,7 +149,7 @@ class BotApp:
         # attempt to match search to post list,
         # returns first result that has the search text inside the post title
         for post in post_list:
-            if search_text in post["title"].lower():
+            if search_text.lower() in post["title"].lower():
                 recipe_text = self.get_recipe_from_post(post)
                 await context.bot.send_message(chat_id=chat_id,
                                                text="Heres the recipe result for " + str(post["title"]))
