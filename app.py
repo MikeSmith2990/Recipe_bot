@@ -59,8 +59,8 @@ class BotApp:
         logging.log(level=logging.INFO, msg="Got /start from: " + str(chat_id))
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Hi! Please request some posts with `/list <num posts 1-25>` \n" +
-                                       "Then use `/recipe <partial post name>` to get that recipe. " +
-                                       "use `/random` to give a random recipe from the hottest 5" +
+                                       "Then use `/recipe <partial post name>` to get that recipe.\n" +
+                                       "Use `/random` to give a random recipe from the hottest 10 posts\n" +
                                        "Right now I only support r/GifRecipes.",
                                        )
 
@@ -73,7 +73,6 @@ class BotApp:
         print("context.args: " + str(context.args))
         print("search_text: " + str(search_text))
 
-
     async def random(self, update, context):
         chat_id = update.effective_chat.id
 
@@ -81,8 +80,8 @@ class BotApp:
 
         await context.bot.send_message(chat_id=chat_id, text="Got request for random post. Processing...")
 
-        post_list = self.reddit.get_sorted_hot_posts(5)
-        val = random.randint(0, 4)
+        post_list = self.reddit.get_sorted_hot_posts(10)
+        val = random.randint(0, 9)
 
         recipe_text = self.get_recipe_from_post(post_list[val])
         await context.bot.send_message(chat_id=chat_id,
@@ -114,6 +113,7 @@ class BotApp:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
             logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
+        # check post limits
         if num > 25 or num < 1:
             await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
             return
