@@ -99,6 +99,14 @@ class BotApp:
     async def list(self, update, context):
         num = None
         chat_id = update.effective_chat.id
+
+        # check if there are args
+        if not self.check_if_args_exist(context.args):
+            await context.bot.send_message(chat_id=chat_id, text="No arguments supplied in command.")
+            logging.log(level=logging.WARNING, msg="No arguments supplied in /list from " + str(chat_id))
+            return
+
+        # we have args, parse them
         try:
             num = int(context.args[0])
             logging.log(level=logging.INFO, msg="Got /list " + str(num) + " from: " + str(chat_id))
@@ -111,7 +119,7 @@ class BotApp:
             return
 
         await context.bot.send_message(chat_id=chat_id,
-                                       text="Heres the highest " + str(num) +
+                                       text="Here are the highest " + str(num) +
                                             " scoring posts on r/GifRecipes right now")
 
         post_list = self.reddit.get_sorted_hot_posts(num=num)
@@ -127,16 +135,22 @@ class BotApp:
         chat_id = update.effective_chat.id
         await context.bot.send_message(chat_id=chat_id, text="Got your request. Processing...")
 
+        # check if there are args
+        if not self.check_if_args_exist(context.args):
+            await context.bot.send_message(chat_id=chat_id, text="No arguments supplied in command.")
+            logging.log(level=logging.WARNING, msg="No arguments supplied in /recipe from " + str(chat_id))
+            return
+
+        # we have args, parse them
         try:
             search_text = ' '.join(context.args)
-            logging.log(level=logging.INFO, msg="Got /list " + str(search_text) + " from: " + str(chat_id))
-
+            logging.log(level=logging.INFO, msg="Got /recipe " + str(search_text) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
             logging.log(level=logging.WARNING, msg="Unable to parse request: " + str(context.args))
             return
         # make sure were searching on actual text
-        if search_text is None:
+        if search_text.isspace():
             return
 
         # Has this user searched for posts before? if not lets do a default search
@@ -152,7 +166,7 @@ class BotApp:
             if search_text.lower() in post["title"].lower():
                 recipe_text = self.get_recipe_from_post(post)
                 await context.bot.send_message(chat_id=chat_id,
-                                               text="Heres the recipe result for " + str(post["title"]))
+                                               text="Here is the recipe result for " + str(post["title"]))
                 # send the gif link
                 await context.bot.send_message(chat_id=chat_id,
                                                text="reddit.com" + str(post["post"].permalink))
@@ -165,6 +179,10 @@ class BotApp:
         # we did not find the title in the list
         await context.bot.send_message(chat_id=chat_id,
                                        text="Couldn't find that post title among your last post request")
+
+    @staticmethod
+    def check_if_args_exist(args_list):
+        return False if args_list == [] else True
 
     @staticmethod
     def get_recipe_from_post(post_dict=None):
