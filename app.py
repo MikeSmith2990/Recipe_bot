@@ -118,11 +118,11 @@ class BotApp:
             await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
             return
 
+        post_list = self.reddit.get_sorted_hot_posts(num=num)
+
         await context.bot.send_message(chat_id=chat_id,
                                        text="Here are the highest " + str(num) +
                                             " scoring posts on r/GifRecipes right now")
-
-        post_list = self.reddit.get_sorted_hot_posts(num=num)
 
         self.user_post_dict[chat_id] = post_list
 
