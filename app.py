@@ -12,6 +12,14 @@ TG_TOKEN = os.getenv('TG_TOKEN')
 
 class BotApp:
 
+    flair_types = ["Breakfast / Brunch",
+                   "Snack",
+                   "Appetizer / Side",
+                   "Main Course",
+                   "Dessert",
+                   "Beverage",
+                   "Beverage - Alcoholic",
+                   "Something Else"]
     def __init__(self):
 
         # Seed the RNG, Create the reddit instance for pulling data
@@ -51,6 +59,9 @@ class BotApp:
         self.bot_app.add_handler(CommandHandler('random', self.random))
         logging.log(level=logging.INFO, msg="/Random handler added...")
 
+        self.bot_app.add_handler(CommandHandler('tags', self.tags))
+        logging.log(level=logging.INFO, msg="/tags handler added...")
+
         self.bot_app.add_handler(CommandHandler('test', self.test))
 
     async def start(self, update, context):
@@ -58,11 +69,21 @@ class BotApp:
 
         logging.log(level=logging.INFO, msg="Got /start from: " + str(chat_id))
         await context.bot.send_message(chat_id=update.effective_chat.id,
-                                       text="Hi! Please request some posts with `/list <num posts 1-25>` \n" +
+                                       text="Hi! Please request some posts with \
+                                       `/list <num posts 1-25> optional:'<tag type>` (With quotes) \n" +
                                        "Then use `/recipe <partial post name>` to get that recipe.\n" +
                                        "Use `/random` to give a random recipe from the hottest 10 posts\n" +
-                                       "Right now I only support r/GifRecipes.",
+                                       "Right now I only support r/GifRecipes.\n" +
+                                       "Use /tags to get a list of flair tags to filter by",
                                        )
+
+    async def tags(self, update, context):
+        chat_id = update.effective_chat.id
+
+        logging.log(level=logging.INFO, msg="Got /tags from: " + str(chat_id))
+        ret = "List of tags:\n"
+        ret += '\n'.join(self.flair_types)
+        await context.bot.send_message(chat_id=chat_id, text=ret)
 
     async def test(self, update, context):
         chat_id = update.effective_chat.id
@@ -97,6 +118,7 @@ class BotApp:
 
     async def list(self, update, context):
         num = None
+        flair = None
         chat_id = update.effective_chat.id
 
         # check if there are args
@@ -108,6 +130,8 @@ class BotApp:
         # we have args, parse them
         try:
             num = int(context.args[0])
+            if context.args[1] and context.args[1].strip('"') in self.flair_types:
+                flair = str(context.args[1])
             logging.log(level=logging.INFO, msg="Got /list " + str(num) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
@@ -118,9 +142,14 @@ class BotApp:
             await context.bot.send_message(chat_id=chat_id, text="Invalid number of recipes requested.")
             return
 
-        post_list = self.reddit.get_sorted_hot_posts(num=num)
+        post_list = self.reddit.get_sorted_hot_posts(num=num, flair=flair)
 
-        await context.bot.send_message(chat_id=chat_id,
+        if flair:
+            await context.bot.send_message(chat_id=chat_id,
+                                           text="Here are the highest " + str(num) +
+                                                " scoring " + flair + " posts on r/GifRecipes right now")
+        else:
+            await context.bot.send_message(chat_id=chat_id,
                                        text="Here are the highest " + str(num) +
                                             " scoring posts on r/GifRecipes right now")
 
