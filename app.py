@@ -12,6 +12,14 @@ TG_TOKEN = os.getenv('TG_TOKEN')
 
 class BotApp:
 
+    # command handlers, name is the same as the function
+    handlers_list = ["start",
+                     "list",
+                     "recipe",
+                     "random",
+                     "tags",
+                     "test"]
+
     flair_types = ["Breakfast / Brunch",
                    "Snack",
                    "Appetizer / Side",
@@ -22,17 +30,9 @@ class BotApp:
                    "Something Else"]
     def __init__(self):
 
-        # Seed the RNG, Create the reddit instance for pulling data
-        # Create the dict to store information (This will be replaced by persistent DB later)
-        # create the bot app to get requests and reply
-        # set up logging
-
-        random.seed()
-
-        self.reddit = RedditScrape()
-
         self.user_post_dict = dict()
-
+        random.seed()
+        self.reddit = RedditScrape()
         self.bot_app = ApplicationBuilder().token(TG_TOKEN).build()
 
         logging.basicConfig(
@@ -47,22 +47,10 @@ class BotApp:
 
     def init_handlers(self):
 
-        self.bot_app.add_handler(CommandHandler('start', self.start))
-        logging.log(level=logging.INFO, msg="/Start handler added...")
-
-        self.bot_app.add_handler(CommandHandler('list', self.list))
-        logging.log(level=logging.INFO, msg="/List handler added...")
-
-        self.bot_app.add_handler(CommandHandler('recipe', self.recipe))
-        logging.log(level=logging.INFO, msg="/Recipe handler added...")
-
-        self.bot_app.add_handler(CommandHandler('random', self.random))
-        logging.log(level=logging.INFO, msg="/Random handler added...")
-
-        self.bot_app.add_handler(CommandHandler('tags', self.tags))
-        logging.log(level=logging.INFO, msg="/tags handler added...")
-
-        self.bot_app.add_handler(CommandHandler('test', self.test))
+        for handler in self.handlers_list:
+            func = getattr(self, handler)
+            self.bot_app.add_handler(CommandHandler(handler, func))
+            logging.log(level=logging.INFO, msg="/" + handler + " handler added...")
 
     async def start(self, update, context):
         chat_id = update.effective_chat.id
