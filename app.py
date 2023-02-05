@@ -74,15 +74,7 @@ class BotApp:
         await context.bot.send_message(chat_id=chat_id, text=ret)
 
     async def test(self, update, context):
-        chat_id = update.effective_chat.id
-
-        search_text = ' '.join(context.args)
-
-        # Testing issue when supplying blank argument
-        print("context.args: " + str(context.args))
-        print("search_text: " + str(search_text))
-        num = int(context.args[0])
-        print("num: " + str(num))
+        return
 
     async def random(self, update, context):
         chat_id = update.effective_chat.id
