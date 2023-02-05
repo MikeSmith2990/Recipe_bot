@@ -58,7 +58,7 @@ class BotApp:
         logging.log(level=logging.INFO, msg="Got /start from: " + str(chat_id))
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Hi! Please request some posts with \
-                                       `/list <num posts 1-25> optional:'<tag type>` (With quotes) \n" +
+                                       `/list <num posts 1-25> optional: <tag type>\n" +
                                        "Then use `/recipe <partial post name>` to get that recipe.\n" +
                                        "Use `/random` to give a random recipe from the hottest 10 posts\n" +
                                        "Right now I only support r/GifRecipes.\n" +
@@ -81,6 +81,8 @@ class BotApp:
         # Testing issue when supplying blank argument
         print("context.args: " + str(context.args))
         print("search_text: " + str(search_text))
+        num = int(context.args[0])
+        print("num: " + str(num))
 
     async def random(self, update, context):
         chat_id = update.effective_chat.id
@@ -94,10 +96,10 @@ class BotApp:
 
         recipe_text = self.get_recipe_from_post(post_list[val])
         await context.bot.send_message(chat_id=chat_id,
-                                       text="Heres your random recipe result: " + str(post_list[val]["title"]))
+                                       text="Heres your random recipe result: " + str(post_list[val].title))
 
         await context.bot.send_message(chat_id=chat_id,
-                                       text="reddit.com" + str(post_list[val]["post"].permalink))
+                                       text="reddit.com" + str(post_list[val].permalink))
 
         await context.bot.send_message(chat_id=chat_id,
                                        disable_web_page_preview=True,
@@ -118,8 +120,10 @@ class BotApp:
         # we have args, parse them
         try:
             num = int(context.args[0])
-            if context.args[1] and context.args[1].strip('"') in self.flair_types:
-                flair = str(context.args[1])
+            # Assign flair type if given
+            if len(context.args) > 1:
+                arg = self.args_to_string(context.args[1:])
+                flair = arg if arg in self.flair_types else None
             logging.log(level=logging.INFO, msg="Got /list " + str(num) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
@@ -145,7 +149,7 @@ class BotApp:
 
         for post in post_list:
             await context.bot.send_message(chat_id=chat_id,
-                                           text=str(post["title"]) + " - " + str(post["score"]) + " Points")
+                                           text=str(post.title) + " - " + str(post.score) + " Points")
 
     async def recipe(self, update, context):
         search_text = None
@@ -160,7 +164,7 @@ class BotApp:
 
         # we have args, parse them
         try:
-            search_text = ' '.join(context.args)
+            search_text = self.args_to_string(context.args)
             logging.log(level=logging.INFO, msg="Got /recipe " + str(search_text) + " from: " + str(chat_id))
         except:
             await context.bot.send_message(chat_id=chat_id, text="Sorry, couldn't parse that request.")
@@ -168,6 +172,7 @@ class BotApp:
             return
         # make sure were searching on actual text
         if search_text.isspace():
+            logging.log(level=logging.WARNING, msg="search_test is space: " + str(context.args))
             return
 
         # Has this user searched for posts before? if not lets do a default search
@@ -180,13 +185,13 @@ class BotApp:
         # attempt to match search to post list,
         # returns first result that has the search text inside the post title
         for post in post_list:
-            if search_text.lower() in post["title"].lower():
+            if search_text.lower() in post.title.lower():
                 recipe_text = self.get_recipe_from_post(post)
                 await context.bot.send_message(chat_id=chat_id,
-                                               text="Here is the recipe result for " + str(post["title"]))
+                                               text="Here is the recipe result for " + str(post.title))
                 # send the gif link
                 await context.bot.send_message(chat_id=chat_id,
-                                               text="reddit.com" + str(post["post"].permalink))
+                                               text="reddit.com" + str(post.permalink))
                 # send recipe
                 await context.bot.send_message(chat_id=chat_id,
                                                disable_web_page_preview=True,
@@ -198,15 +203,18 @@ class BotApp:
                                        text="Couldn't find that post title among your last post request")
 
     @staticmethod
-    def check_if_args_exist(args_list):
-        return False if args_list == [] else True
+    def args_to_string(args_list):
+        return " ".join(args_list)
 
     @staticmethod
-    def get_recipe_from_post(post_dict=None):
-        if post_dict is None:
+    def check_if_args_exist(args_list):
+        return bool(args_list)
+
+    @staticmethod
+    def get_recipe_from_post(post=None):
+        if post is None:
             return None
 
-        post = post_dict["post"]
         comments = post.comments
         comments.replace_more(limit=1)
         first_comment = comments[0]  # should be the sticky comment...

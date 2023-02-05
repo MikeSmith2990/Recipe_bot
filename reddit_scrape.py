@@ -38,18 +38,19 @@ class RedditScrape:
         for post in self.reddit.subreddit("gifrecipes").hot(limit=None):
             if post.stickied or post.is_self or (post.link_flair_text != flair and flair is not None):
                 continue
-            # add to tuple...
-            post_list.append({
-                "post": post,
-                "score": post.score,
-                "title": post.title,
-                "flair": post.link_flair_text
-                             })
+            post_list.append(post)
+
+            #post_list.append({
+            #    "post": post,
+            #    "score": post.score,
+            #    "title": post.title,
+            #    "flair": post.link_flair_text })
+
             count += 1
             if count == num:
                 break
 
         # sort them by score
-        sorted_post_list = sorted(post_list, key=lambda post: post["score"])
+        sorted_post_list = sorted(post_list, key=lambda post: post.score)
         sorted_post_list.reverse()
         return sorted_post_list
